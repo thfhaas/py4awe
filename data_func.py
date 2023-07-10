@@ -216,16 +216,16 @@ def compute_aero_force_coefs(b, c, alpha, beta, omega, Va, delta):
     CX_0_a_MW = np.concatenate((stab_derivs['CX']['0'], stab_derivs['CX']['alpha']))
     CY_0_a_MW = np.array([0, 0, 0])
     CZ_0_a_MW = np.concatenate((stab_derivs['CZ']['0'], stab_derivs['CZ']['alpha']))
-    # Cf_0 = np.array([[C(CX_0_a_MW, alpha), C(CY_0_a_MW, alpha), C(CZ_0_a_MW, alpha)]]).T
-    Cf_0 = np.array([C(CX_0_a_MW, alpha), C(CY_0_a_MW, alpha), C(CZ_0_a_MW, alpha)])
+    # CF_0 = np.array([[C(CX_0_a_MW, alpha), C(CY_0_a_MW, alpha), C(CZ_0_a_MW, alpha)]]).T
+    CF_0 = np.array([C(CX_0_a_MW, alpha), C(CY_0_a_MW, alpha), C(CZ_0_a_MW, alpha)])
 
     # beta contribution
     CX_B_a_MW = np.array([0, 0, 0])
     CY_B_a_MW = stab_derivs['CY']['beta']
     CZ_B_a_MW = np.array([0, 0, 0])
-    # Cf_B = np.array([[C(CX_B_a_MW, alpha), C(CY_B_a_MW, alpha), C(CZ_B_a_MW, alpha)]]).T
-    Cf_B = np.array([C(CX_B_a_MW, alpha), C(CY_B_a_MW, alpha), C(CZ_B_a_MW, alpha)])
-    Cf_beta = Cf_B*beta
+    # CF_B = np.array([[C(CX_B_a_MW, alpha), C(CY_B_a_MW, alpha), C(CZ_B_a_MW, alpha)]]).T
+    CF_B = np.array([C(CX_B_a_MW, alpha), C(CY_B_a_MW, alpha), C(CZ_B_a_MW, alpha)])
+    CF_beta = CF_B*beta
 
     # roll contribution (p)
     CX_p_a_MW = np.array([0, 0, 0])
@@ -241,53 +241,141 @@ def compute_aero_force_coefs(b, c, alpha, beta, omega, Va, delta):
     #TODO: stab_derivs['CY']['deltar'] = np.array([0.22266, 0.0099775, -0.21563]) was first used
     #TODO: stab_derivs['CY']['r'] = np.array([0.094734, 0.029343, -0.053453]) is probably correct
     CX_r_a_MW = np.array([0, 0, 0])
-    CY_r_a_MW = stab_derivs['CY']['r']
+    CY_r_a_MW = stab_derivs['CY']['deltar']
     CZ_r_a_MW = np.array([0, 0, 0])
 
     # Contribution of angular rates p, q, r #TODO: better name ?
     # pqr_norm = np.array([[b * p / (2 * Va), c * q / (2 * Va), b * r / (2 * Va)]]).T
-    # Cf_rot = np.matrix([[C(CX_p_a_MW, alpha), C(CX_q_a_MW, alpha), C(CX_r_a_MW, alpha)],
+    # CF_rot = np.matrix([[C(CX_p_a_MW, alpha), C(CX_q_a_MW, alpha), C(CX_r_a_MW, alpha)],
     #                     [C(CY_p_a_MW, alpha), C(CY_q_a_MW, alpha), C(CY_r_a_MW, alpha)],
     #                     [C(CZ_p_a_MW, alpha), C(CZ_q_a_MW, alpha), C(CZ_r_a_MW, alpha)]])
-    # Cf_pqr = Cf_rot * pqr_norm
+    # CF_pqr = CF_rot * pqr_norm
     pqr_norm = np.array([b * p / (2 * Va), c * q / (2 * Va), b * r / (2 * Va)])
-    Cf_rot = np.array([[C(CX_p_a_MW, alpha), C(CX_q_a_MW, alpha), C(CX_r_a_MW, alpha)],
+    CF_rot = np.array([[C(CX_p_a_MW, alpha), C(CX_q_a_MW, alpha), C(CX_r_a_MW, alpha)],
                        [C(CY_p_a_MW, alpha), C(CY_q_a_MW, alpha), C(CY_r_a_MW, alpha)],
                        [C(CZ_p_a_MW, alpha), C(CZ_q_a_MW, alpha), C(CZ_r_a_MW, alpha)]])
-    Cf_pqr = np.matmul(Cf_rot, pqr_norm)
+    CF_pqr = np.matmul(CF_rot, pqr_norm)
 
     # aileron contribution
     #TODO: Verify why deltaa has no contributions
     CX_deltaa_a_MW = np.array([0, 0, 0])
     CY_deltaa_a_MW = np.array([0, 0, 0]) #TODO: This should probably not be zero
     CZ_deltaa_a_MW = np.array([0, 0, 0])
-    # Cf_da = np.array([[C(CX_deltaa_a_MW, alpha), C(CY_deltaa_a_MW, alpha), C(CZ_deltaa_a_MW, alpha)]]).T
-    Cf_da = np.array([C(CX_deltaa_a_MW, alpha), C(CY_deltaa_a_MW, alpha), C(CZ_deltaa_a_MW, alpha)])
-    Cf_deltaa = Cf_da*deltaa
+    # CF_da = np.array([[C(CX_deltaa_a_MW, alpha), C(CY_deltaa_a_MW, alpha), C(CZ_deltaa_a_MW, alpha)]]).T
+    CF_da = np.array([C(CX_deltaa_a_MW, alpha), C(CY_deltaa_a_MW, alpha), C(CZ_deltaa_a_MW, alpha)])
+    CF_deltaa = CF_da*deltaa
 
     # elevator contribution
     CX_deltae_a_MW = stab_derivs['CX']['deltae']
     CY_deltae_a_MW = stab_derivs['CY']['deltae'] #TODO: This should maybe be np.array([0, 0, 0])
     CZ_deltae_a_MW = stab_derivs['CZ']['deltae']
-    # Cf_de = np.array([[C(CX_deltae_a_MW, alpha), C(CY_deltae_a_MW, alpha), C(CZ_deltae_a_MW, alpha)]]).T
-    Cf_de = np.array([C(CX_deltae_a_MW, alpha), C(CY_deltae_a_MW, alpha), C(CZ_deltae_a_MW, alpha)])
-    Cf_deltae = Cf_de*deltae
+    # CF_de = np.array([[C(CX_deltae_a_MW, alpha), C(CY_deltae_a_MW, alpha), C(CZ_deltae_a_MW, alpha)]]).T
+    CF_de = np.array([C(CX_deltae_a_MW, alpha), C(CY_deltae_a_MW, alpha), C(CZ_deltae_a_MW, alpha)])
+    CF_deltae = CF_de*deltae
 
     # rudder contribution
     CX_deltar_a_MW = np.array([0, 0, 0])
     CY_deltar_a_MW = stab_derivs['CY']['deltar']
     CZ_deltar_a_MW = np.array([0, 0, 0])
-    # Cf_dr = np.array([[C(CX_deltar_a_MW, alpha), C(CY_deltar_a_MW, alpha), C(CZ_deltar_a_MW, alpha)]]).T
-    Cf_dr = np.array([C(CX_deltar_a_MW, alpha), C(CY_deltar_a_MW, alpha), C(CZ_deltar_a_MW, alpha)])
-    Cf_deltar = Cf_dr*deltar
+    # CF_dr = np.array([[C(CX_deltar_a_MW, alpha), C(CY_deltar_a_MW, alpha), C(CZ_deltar_a_MW, alpha)]]).T
+    CF_dr = np.array([C(CX_deltar_a_MW, alpha), C(CY_deltar_a_MW, alpha), C(CZ_deltar_a_MW, alpha)])
+    CF_deltar = CF_dr*deltar
 
     # contribution of control surfaces
-    Cf_delta = Cf_deltaa + Cf_deltae + Cf_deltar
+    CF_delta = CF_deltaa + CF_deltae + CF_deltar
 
     # Total aerodynamic coefficient
-    Cf_tot = Cf_0 + Cf_beta + Cf_pqr + Cf_delta
+    CF_tot = CF_0 + CF_beta + CF_pqr + CF_delta
 
-    return Cf_tot, Cf_0, Cf_beta, Cf_pqr, Cf_delta
+    return CF_tot, CF_0, CF_beta, CF_pqr, CF_delta
+
+def compute_aero_moment_coefs(b, c, alpha, beta, omega, Va, delta):
+    '''
+    Compute aerodynamic force coefficients of main wing of MegAWES aircraft
+    Inputs: Aerodynamic quantities b, c, alpha, beta, p, q, r, Va, deltaa, deltae, deltar
+    Outputs: Aerodynamic force coefficient
+    '''
+    #TODO: Is it necessary to have the coefficients as (3,1) arrays and matrices instead of (1,3) arrays ?
+
+    # angular velocities
+    p = omega[0]
+    q = omega[1]
+    r = omega[2]
+
+    # surface control deflections
+    deltaa = delta[0]
+    deltae = delta[1]
+    deltar = delta[2]
+
+    # Aerodynamic stability derivatives of MegAWES aircraft
+    stab_derivs = get_aero_stab_derivs('AVL')
+
+    # alpha contribution (main wing)
+    Cl_0_a_MW = np.array([0, 0, 0])
+    Cm_0_a_MW = np.concatenate((stab_derivs['Cm']['0'], stab_derivs['Cm']['alpha']))
+    Cn_0_a_MW = np.array([0, 0, 0])
+
+    CM_0 = np.array([C(Cl_0_a_MW, alpha), C(Cm_0_a_MW, alpha), C(Cn_0_a_MW, alpha)])
+
+    # beta contribution
+    Cl_B_a_MW = stab_derivs['Cl']['beta']
+    Cm_B_a_MW = np.array([0, 0, 0])
+    Cn_B_a_MW = stab_derivs['Cn']['beta']
+
+    CM_B = np.array([C(Cl_B_a_MW, alpha), C(Cm_B_a_MW, alpha), C(Cn_B_a_MW, alpha)])
+    CM_beta = CM_B*beta
+
+    # roll contribution (p)
+    Cl_p_a_MW = stab_derivs['Cl']['p']
+    Cm_p_a_MW = np.array([0, 0, 0])
+    Cn_p_a_MW = stab_derivs['Cn']['p']
+
+    # pitch contribution (q)
+    Cl_q_a_MW = np.array([0, 0, 0])
+    Cm_q_a_MW = stab_derivs['Cm']['q']
+    Cn_q_a_MW = np.array([0, 0, 0])
+
+    # yaw contribution (r)
+    Cl_r_a_MW = stab_derivs['Cl']['r']
+    Cm_r_a_MW = np.array([0, 0, 0])
+    Cn_r_a_MW = stab_derivs['Cn']['r']
+
+    # Contribution of angular rates p, q, r #TODO: better name ?
+
+    pqr_norm = np.array([b * p / (2 * Va), c * q / (2 * Va), b * r / (2 * Va)])
+    CM_rot = np.array([[C(Cl_p_a_MW, alpha), C(Cl_q_a_MW, alpha), C(Cl_r_a_MW, alpha)],
+                       [C(Cm_p_a_MW, alpha), C(Cm_q_a_MW, alpha), C(Cm_r_a_MW, alpha)],
+                       [C(Cn_p_a_MW, alpha), C(Cn_q_a_MW, alpha), C(Cn_r_a_MW, alpha)]])
+    CM_pqr = np.matmul(CM_rot, pqr_norm)
+
+    # aileron contribution
+    Cl_deltaa_a_MW = stab_derivs['Cl']['deltaa']
+    Cm_deltaa_a_MW = np.array([0, 0, 0])
+    Cn_deltaa_a_MW = stab_derivs['Cn']['deltaa']
+    CM_da = np.array([C(Cl_deltaa_a_MW, alpha), C(Cm_deltaa_a_MW, alpha), C(Cn_deltaa_a_MW, alpha)])
+    CM_deltaa = CM_da*deltaa
+
+    # elevator contribution
+    Cl_deltae_a_MW = np.array([0, 0, 0])
+    Cm_deltae_a_MW = stab_derivs['Cm']['deltae'] 
+    Cn_deltae_a_MW = np.array([0, 0, 0])
+    CM_de = np.array([C(Cl_deltae_a_MW, alpha), C(Cm_deltae_a_MW, alpha), C(Cn_deltae_a_MW, alpha)])
+    CM_deltae = CM_de*deltae
+
+    # rudder contribution
+    Cl_deltar_a_MW = stab_derivs['Cl']['deltar']
+    Cm_deltar_a_MW = np.array([0, 0, 0])
+    Cn_deltar_a_MW = stab_derivs['Cn']['deltar']
+    CM_dr = np.array([C(Cl_deltar_a_MW, alpha), C(Cm_deltar_a_MW, alpha), C(Cn_deltar_a_MW, alpha)])
+    CM_deltar = CM_dr*deltar
+
+    # contribution of control surfaces
+    CM_delta = CM_deltaa + CM_deltae + CM_deltar
+
+    # Total aerodynamic coefficient
+    CM_tot = CM_0 + CM_beta + CM_pqr + CM_delta
+
+    return CM_tot, CM_0, CM_beta, CM_pqr, CM_delta
 
 # -------------------------- AWEBOX aero model -------------------------- #
 def compute_wind_speed(z, uref=10.0, zref=100.0, z0=0.0002):
@@ -347,12 +435,35 @@ def compute_aero_forces(x, geom):
 
     # Compute aerodynamic coefficients
     coefs = compute_aero_force_coefs(geom.b, geom.c, alpha, beta, x[6:9], Va_norm, x[-3:])
-    Cf = coefs[0] # Total force
+    CF = coefs[0] # Total force
 
     # Compute aerodynamic forces
-    F = 0.5*rho*Cf*geom.S*Va_norm**2
+    F = 0.5*rho*CF*geom.S*Va_norm**2
 
-    return F, Cf
+    return F, CF
+
+# -------------------------- MegAWES aerodynamic forces and moments -------------------------- #
+def compute_aero_moments(x, geom):
+    '''
+    Compute aerodynamic forces of MegAWES aircraft
+    '''
+
+    # Compute Direct Cosine Matrix
+    R_rot = compute_DCM(x[9:18])
+
+    # Compute aerodynamic quantities from states (Va, alpha, beta) and air density
+    Va, Va_norm = compute_apparent_speed(x[:3], x[3:6])
+    alpha, beta = compute_aero_angles(Va, R_rot)
+    rho = compute_density(x[2])
+
+    # Compute aerodynamic coefficients
+    coefs = compute_aero_moment_coefs(geom.b, geom.c, alpha, -beta, x[6:9], Va_norm, x[-3:])
+    CM = coefs[0] # Total force
+    l = np.array([geom.b, geom.c, geom.b])
+    # Compute aerodynamic forces
+    M = 0.5*rho*CM*l*geom.S*Va_norm**2
+
+    return M, CM
 
 # -------------------------- MegAWES aircraft instance -------------------------- #
 class Geometry:
@@ -370,11 +481,12 @@ class Aerodynamics:
     Instantaneous aerodynamics of MegAWES aircraft
     '''
     def __init__(self, x, geom):
-        F, Cf = compute_aero_forces(x, geom)
+        F, CF = compute_aero_forces(x, geom)
         self.forces = F
-        self.aeroCoefs = Cf #+ Cm
-        # M, Cm = compute_aero_moments(x, geom)
-        # self.moments = M
+        M, CM = compute_aero_moments(x, geom)
+        self.moments = M
+        self.aeroCoefs = np.concatenate((CF, CM))
+
 
 class MegAWES:
     def __init__(self, t, x):
@@ -388,4 +500,4 @@ class MegAWES:
     #
     # R2 = Rz(-beta) * Ry(alpha)  # transformation body to aerodynamic
     #
-    # Cfa_tot = R2 * Cf_tot
+    # CFa_tot = R2 * CF_tot

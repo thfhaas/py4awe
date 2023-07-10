@@ -45,15 +45,29 @@ print(MegAWES.aero.aeroCoefs, MegAWES.aero.forces)
 # Compare computed forces and AWEBOX forces
 N = len(t0)
 F = np.empty((N, 3))
+M = np.empty((N, 3))
 for k, t, x in zip(range(N), t0, x0):
     MegAWES = fun.MegAWES(t, x)
-    F[k,:] = MegAWES.aero.forces
+    F[k,:] = np.array([[-1, 0, 0], [0,1,0], [0,0,-1]])@MegAWES.aero.forces
+    M[k,:] = np.array([[-1, 0, 0], [0,1,0], [0,0,-1]])@MegAWES.aero.moments # np.array([[-1, 0, 0], [0,1,0], [0,0,-1]])@
+
 
 # Plot forces
 fig, ax =plt.subplots(figsize=(8,6), nrows=3)
 for k in range(3):
     ax[k].plot(t0, F[:,k], label='computed')
-    ax[k].plot(awes['time'], awes['outputs_aerodynamics_f_aero_earth1_'+str(k)], label='awebox')
+    ax[k].plot(awes['time'], awes['outputs_aerodynamics_f_aero_body1_'+str(k)], label='awebox')
     ax[k].set_xlabel('time')
     ax[k].set_ylabel('F_'+str(k))
     ax[k].legend(loc=1)
+
+# Plot moments
+fig, ax =plt.subplots(figsize=(8,6), nrows=3)
+for k in range(3):
+    ax[k].plot(t0, M[:,k], label='computed')
+    ax[k].plot(awes['time'], awes['outputs_aerodynamics_m_aero_body1_'+str(k)], label='awebox')
+    ax[k].set_xlabel('time')
+    ax[k].set_ylabel('M_'+str(k))
+    ax[k].legend(loc=1)
+
+plt.show()
