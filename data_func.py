@@ -109,7 +109,7 @@ def Rx(theta):
     '''
     Rotation about x-axis
     '''
-    return np.matrix([[ 1, 0           , 0           ],
+    return np.array([[ 1, 0           , 0           ],
                       [ 0, m.cos(theta),-m.sin(theta)],
                       [ 0, m.sin(theta), m.cos(theta)]])
 
@@ -117,7 +117,7 @@ def Ry(theta):
     '''
     Rotation about y-axis
     '''
-    return np.matrix([[ m.cos(theta), 0, m.sin(theta)],
+    return np.array([[ m.cos(theta), 0, m.sin(theta)],
                       [ 0           , 1, 0           ],
                       [-m.sin(theta), 0, m.cos(theta)]])
 
@@ -125,7 +125,7 @@ def Rz(theta):
     '''
     Rotation about z-axis
     '''
-    return np.matrix([[ m.cos(theta), -m.sin(theta), 0 ],
+    return np.array([[ m.cos(theta), -m.sin(theta), 0 ],
                       [ m.sin(theta), m.cos(theta) , 0 ],
                       [ 0           , 0            , 1 ]])
 
@@ -241,7 +241,7 @@ def compute_aero_force_coefs(b, c, alpha, beta, omega, Va, delta):
     #TODO: stab_derivs['CY']['deltar'] = np.array([0.22266, 0.0099775, -0.21563]) was first used
     #TODO: stab_derivs['CY']['r'] = np.array([0.094734, 0.029343, -0.053453]) is probably correct
     CX_r_a_MW = np.array([0, 0, 0])
-    CY_r_a_MW = stab_derivs['CY']['deltar']
+    CY_r_a_MW = stab_derivs['CY']['r']
     CZ_r_a_MW = np.array([0, 0, 0])
 
     # Contribution of angular rates p, q, r #TODO: better name ?
@@ -434,13 +434,17 @@ def compute_aero_forces(x, geom):
     rho = compute_density(x[2])
 
     # Compute aerodynamic coefficients
-    coefs = compute_aero_force_coefs(geom.b, geom.c, alpha, beta, x[6:9], Va_norm, x[-3:])
+
+    # /!\ Malz aero model; give it in its awn convention (=! awebox)
+    R_awebox2malz = Rx(np.pi)@Rz(np.pi)
+
+    coefs = compute_aero_force_coefs(geom.b, geom.c, alpha, beta, R_awebox2malz@x[6:9], Va_norm, x[-3:])
     CF = coefs[0] # Total force
 
     # Compute aerodynamic forces
     F = 0.5*rho*CF*geom.S*Va_norm**2
 
-    return F, CF
+    return R_awebox2malz.T @ F, R_awebox2malz.T @ CF
 
 # -------------------------- MegAWES aerodynamic forces and moments -------------------------- #
 def compute_aero_moments(x, geom):
@@ -457,13 +461,17 @@ def compute_aero_moments(x, geom):
     rho = compute_density(x[2])
 
     # Compute aerodynamic coefficients
-    coefs = compute_aero_moment_coefs(geom.b, geom.c, alpha, -beta, x[6:9], Va_norm, x[-3:])
+
+    # /!\ Malz aero model; give it in its awn convention (=! awebox)
+    R_awebox2malz = Rx(np.pi)@Rz(np.pi)
+
+    coefs = compute_aero_moment_coefs(geom.b, geom.c, alpha, beta, R_awebox2malz@x[6:9], Va_norm, x[-3:])
     CM = coefs[0] # Total force
     l = np.array([geom.b, geom.c, geom.b])
     # Compute aerodynamic forces
     M = 0.5*rho*CM*l*geom.S*Va_norm**2
 
-    return M, CM
+    return R_awebox2malz.T @ M, R_awebox2malz.T @ CM
 
 # -------------------------- MegAWES aircraft instance -------------------------- #
 class Geometry:
@@ -482,8 +490,9 @@ class Aerodynamics:
     '''
     def __init__(self, x, geom):
         F, CF = compute_aero_forces(x, geom)
-        self.forces = F
         M, CM = compute_aero_moments(x, geom)
+
+        self.forces = F
         self.moments = M
         self.aeroCoefs = np.concatenate((CF, CM))
 

@@ -35,6 +35,8 @@ u0 = fun.dict2u(awes)
 # -------------------------- Recompute MegAWES aerodynamics -------------------------- #
 #TODO: Fix aerodynamic model
 
+# /!\ Malz model in forward, right, down body frame; Awebox model in backward, right, up body frame
+
 # Compute aerodynamic forces at random time in power cycle
 from random import uniform
 idx = (np.abs(t0 - uniform(0, t0.max()))).argmin()
@@ -48,8 +50,8 @@ F = np.empty((N, 3))
 M = np.empty((N, 3))
 for k, t, x in zip(range(N), t0, x0):
     MegAWES = fun.MegAWES(t, x)
-    F[k,:] = np.array([[-1, 0, 0], [0,1,0], [0,0,-1]])@MegAWES.aero.forces
-    M[k,:] = np.array([[-1, 0, 0], [0,1,0], [0,0,-1]])@MegAWES.aero.moments # np.array([[-1, 0, 0], [0,1,0], [0,0,-1]])@
+    F[k,:] = MegAWES.aero.forces
+    M[k,:] = MegAWES.aero.moments
 
 
 # Plot forces
