@@ -378,11 +378,29 @@ def compute_aero_moment_coefs(b, c, alpha, beta, omega, Va, delta):
     return CM_tot, CM_0, CM_beta, CM_pqr, CM_delta
 
 # -------------------------- AWEBOX aero model -------------------------- #
-def compute_wind_speed(z, uref=10.0, zref=100.0, z0=0.0002):
+def compute_wind_speed(z, uref=10.0, zref=100.0, z0=0.0002, model = 'uniform', exp_ref = 0.15):
     '''
     compute logarithmic wind speed at specific height z
     '''
-    return uref*np.log(z/z0)/np.log(zref/z0)
+    if model == 'log_wind':
+
+        # mathematically: it doesn't make a difference what the base of
+        # these logarithms is, as long as they have the same base.
+        # but, the values will be smaller in base 10 (since we're describing
+        # altitude differences), which makes convergence nicer.
+        # u = u_ref * np.log10(zz / z0_air) / np.log10(z_ref / z0_air)
+        u = uref * np.log10(z / z0) / np.log10(zref / z0)
+
+    elif model == 'power':
+        u = uref * (z / zref) ** exp_ref
+
+    elif model == 'uniform':
+        u = uref
+
+    else:
+        raise ValueError('unsupported atmospheric option chosen: %s', model)
+
+    return u
 
 def compute_density(z, rho_ref=1.225, t_ref=288.15, gamma_air=6.5e-3, g=9.81, R_gas=287.053):
     '''
@@ -390,11 +408,11 @@ def compute_density(z, rho_ref=1.225, t_ref=288.15, gamma_air=6.5e-3, g=9.81, R_
     '''
     return rho_ref * ((t_ref - gamma_air*z)/ t_ref) ** (g/gamma_air/R_gas - 1.0)
 
-def compute_apparent_speed(q, dq):
+def compute_apparent_speed(q, dq, wind_model):
     '''
     compute apparent wind speed at specific height z
     '''
-    Vw = np.array([compute_wind_speed(q[2]), 0, 0])
+    Vw = np.array([compute_wind_speed(q[2], model = wind_model), 0, 0])
     Va = Vw - dq
     return Va, np.linalg.norm(Va)
 
@@ -420,7 +438,7 @@ def compute_aero_angles(Va, R_rot):
     return alpha, beta
 
 # -------------------------- MegAWES aerodynamic forces and moments -------------------------- #
-def compute_aero_forces(x, geom):
+def compute_aero_forces(x, geom, wind_model):
     '''
     Compute aerodynamic forces of MegAWES aircraft
     '''
@@ -429,7 +447,7 @@ def compute_aero_forces(x, geom):
     R_rot = compute_DCM(x[9:18])
 
     # Compute aerodynamic quantities from states (Va, alpha, beta) and air density
-    Va, Va_norm = compute_apparent_speed(x[:3], x[3:6])
+    Va, Va_norm = compute_apparent_speed(x[:3], x[3:6], wind_model)
     alpha, beta = compute_aero_angles(Va, R_rot)
     rho = compute_density(x[2])
 
@@ -444,10 +462,10 @@ def compute_aero_forces(x, geom):
     # Compute aerodynamic forces
     F = 0.5*rho*CF*geom.S*Va_norm**2
 
-    return R_awebox2malz.T @ F, R_awebox2malz.T @ CF
+    return R_awebox2malz.T @ F, R_awebox2malz.T @ CF, alpha, beta, Va
 
 # -------------------------- MegAWES aerodynamic forces and moments -------------------------- #
-def compute_aero_moments(x, geom):
+def compute_aero_moments(x, geom, wind_model):
     '''
     Compute aerodynamic forces of MegAWES aircraft
     '''
@@ -456,7 +474,7 @@ def compute_aero_moments(x, geom):
     R_rot = compute_DCM(x[9:18])
 
     # Compute aerodynamic quantities from states (Va, alpha, beta) and air density
-    Va, Va_norm = compute_apparent_speed(x[:3], x[3:6])
+    Va, Va_norm = compute_apparent_speed(x[:3], x[3:6], wind_model)
     alpha, beta = compute_aero_angles(Va, R_rot)
     rho = compute_density(x[2])
 
@@ -488,21 +506,24 @@ class Aerodynamics:
     '''
     Instantaneous aerodynamics of MegAWES aircraft
     '''
-    def __init__(self, x, geom):
-        F, CF = compute_aero_forces(x, geom)
-        M, CM = compute_aero_moments(x, geom)
+    def __init__(self, x, geom, wind_model):
+        F, CF, alpha, beta, Va = compute_aero_forces(x, geom, wind_model)
+        M, CM = compute_aero_moments(x, geom, wind_model)
 
         self.forces = F
         self.moments = M
         self.aeroCoefs = np.concatenate((CF, CM))
+        self.alpha = alpha
+        self.beta = beta
+        self.Va = Va
 
 
 class MegAWES:
-    def __init__(self, t, x):
+    def __init__(self, t, x, wind_model = 'uniform'):
         self.t = t
         self.x = x
         self.geom = Geometry()
-        self.aero = Aerodynamics(x, self.geom)
+        self.aero = Aerodynamics(x, self.geom, wind_model)
 
     # # Returns wing and tail forces in
     # return F_aero, F_wing, F_tail
