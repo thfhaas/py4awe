@@ -59,8 +59,8 @@ def dict2x(data, return_t=False, print_keys=False):
     keys_states.extend(['x_omega10_0', 'x_omega10_1', 'x_omega10_2'])
     keys_states.extend(
         ['x_r10_0', 'x_r10_1', 'x_r10_2', 'x_r10_3', 'x_r10_4', 'x_r10_5', 'x_r10_6', 'x_r10_7', 'x_r10_8'])
-    keys_states.extend(['x_l_t_0', 'x_dl_t_0'])
     keys_states.extend(['x_delta10_0', 'x_delta10_1', 'x_delta10_2'])
+    keys_states.extend(['x_l_t_0', 'x_dl_t_0'])
     if print_keys:
         for key in keys_states:
             print(key)
@@ -456,7 +456,7 @@ def compute_aero_forces(x, geom, wind_model):
     # /!\ Malz aero model; give it in its awn convention (=! awebox)
     R_awebox2malz = Rx(np.pi)@Rz(np.pi)
 
-    coefs = compute_aero_force_coefs(geom.b, geom.c, alpha, beta, R_awebox2malz@x[6:9], Va_norm, x[-3:])
+    coefs = compute_aero_force_coefs(geom.b, geom.c, alpha, beta, R_awebox2malz@x[6:9], Va_norm, x[18:21])
     CF = coefs[0] # Total force
 
     # Compute aerodynamic forces
@@ -483,7 +483,7 @@ def compute_aero_moments(x, geom, wind_model):
     # /!\ Malz aero model; give it in its awn convention (=! awebox)
     R_awebox2malz = Rx(np.pi)@Rz(np.pi)
 
-    coefs = compute_aero_moment_coefs(geom.b, geom.c, alpha, beta, R_awebox2malz@x[6:9], Va_norm, x[-3:])
+    coefs = compute_aero_moment_coefs(geom.b, geom.c, alpha, beta, R_awebox2malz@x[6:9], Va_norm, x[18:21])
     CM = coefs[0] # Total force
     l = np.array([geom.b, geom.c, geom.b])
     # Compute aerodynamic forces
