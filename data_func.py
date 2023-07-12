@@ -421,7 +421,7 @@ def compute_DCM(r_ii):
     compute Direct Cosine Matrix (DCM)
     '''
     # AWEBOX outputs in Euler form
-    if np.sum(r_ii[3:]) <= 1e-3:
+    if np.sum(np.abs(r_ii[3:])) <= 1e-3:
         euler_angles = r_ii[:3]
         R_rot = R.from_euler('xyz', euler_angles, degrees=False).as_matrix()
     # AWEBOX outputs in DCM form
