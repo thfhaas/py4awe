@@ -1,6 +1,9 @@
 '''
 File: data_func.py
-Author: Thomas Haas (Ghent University)
+Authors: 
+    Thomas Haas (Ghent University)
+    Niels Pynaert (Ghent University)
+    Jean-Baptiste Crismer (UC Louvain)
 Date: 29/07/2022
 Description: Data processing routines for awebox
 '''

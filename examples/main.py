@@ -1,7 +1,10 @@
 #!usr/bin/python3
 '''
 Example file for the py4awe package
-Author: Thomas Haas, Ghent University
+Authors: 
+    Thomas Haas (Ghent University)
+    Niels Pynaert (Ghent University)
+    Jean-Baptiste Crismer (UC Louvain)
 Date: 10/07/2023
 '''
 import os
