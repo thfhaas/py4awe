@@ -100,7 +100,7 @@ for k in range(3):
     ax[k].grid()
 
 # Plot angular velocity
-ang_vel = x0[:,6:9]
+ang_vel = x0[:,15:18]
 fig, ax =plt.subplots(figsize=(8,6), nrows=3)
 for k in range(3):
     ax[k].plot(t0, ang_vel[:,k])
@@ -109,7 +109,7 @@ for k in range(3):
     ax[k].grid()
 
 # Plot CS actuation
-delta = x0[:,20:23]
+delta = x0[:,18:21]
 fig, ax =plt.subplots(figsize=(8,6), nrows=3)
 for k in range(3):
     ax[k].plot(t0, delta[:,k])
