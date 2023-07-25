@@ -200,7 +200,6 @@ def compute_aero_force_coefs(b, c, alpha, beta, omega, Va, delta):
     Inputs: Aerodynamic quantities b, c, alpha, beta, p, q, r, Va, deltaa, deltae, deltar
     Outputs: Aerodynamic force coefficient
     '''
-    #TODO: Is it necessary to have the coefficients as (3,1) arrays and matrices instead of (1,3) arrays ?
 
     # angular velocities
     p = omega[0]
@@ -219,14 +218,12 @@ def compute_aero_force_coefs(b, c, alpha, beta, omega, Va, delta):
     CX_0_a_MW = np.concatenate((stab_derivs['CX']['0'], stab_derivs['CX']['alpha']))
     CY_0_a_MW = np.array([0, 0, 0])
     CZ_0_a_MW = np.concatenate((stab_derivs['CZ']['0'], stab_derivs['CZ']['alpha']))
-    # CF_0 = np.array([[C(CX_0_a_MW, alpha), C(CY_0_a_MW, alpha), C(CZ_0_a_MW, alpha)]]).T
     CF_0 = np.array([C(CX_0_a_MW, alpha), C(CY_0_a_MW, alpha), C(CZ_0_a_MW, alpha)])
 
     # beta contribution
     CX_B_a_MW = np.array([0, 0, 0])
     CY_B_a_MW = stab_derivs['CY']['beta']
     CZ_B_a_MW = np.array([0, 0, 0])
-    # CF_B = np.array([[C(CX_B_a_MW, alpha), C(CY_B_a_MW, alpha), C(CZ_B_a_MW, alpha)]]).T
     CF_B = np.array([C(CX_B_a_MW, alpha), C(CY_B_a_MW, alpha), C(CZ_B_a_MW, alpha)])
     CF_beta = CF_B*beta
 
@@ -241,30 +238,21 @@ def compute_aero_force_coefs(b, c, alpha, beta, omega, Va, delta):
     CZ_q_a_MW = stab_derivs['CZ']['q']
 
     # yaw contribution (r)
-    #TODO: stab_derivs['CY']['deltar'] = np.array([0.22266, 0.0099775, -0.21563]) was first used
-    #TODO: stab_derivs['CY']['r'] = np.array([0.094734, 0.029343, -0.053453]) is probably correct
     CX_r_a_MW = np.array([0, 0, 0])
     CY_r_a_MW = stab_derivs['CY']['r']
     CZ_r_a_MW = np.array([0, 0, 0])
 
-    # Contribution of angular rates p, q, r #TODO: better name ?
-    # pqr_norm = np.array([[b * p / (2 * Va), c * q / (2 * Va), b * r / (2 * Va)]]).T
-    # CF_rot = np.matrix([[C(CX_p_a_MW, alpha), C(CX_q_a_MW, alpha), C(CX_r_a_MW, alpha)],
-    #                     [C(CY_p_a_MW, alpha), C(CY_q_a_MW, alpha), C(CY_r_a_MW, alpha)],
-    #                     [C(CZ_p_a_MW, alpha), C(CZ_q_a_MW, alpha), C(CZ_r_a_MW, alpha)]])
-    # CF_pqr = CF_rot * pqr_norm
+    # Contribution of angular rates p, q, r
     pqr_norm = np.array([b * p / (2 * Va), c * q / (2 * Va), b * r / (2 * Va)])
     CF_rot = np.array([[C(CX_p_a_MW, alpha), C(CX_q_a_MW, alpha), C(CX_r_a_MW, alpha)],
                        [C(CY_p_a_MW, alpha), C(CY_q_a_MW, alpha), C(CY_r_a_MW, alpha)],
                        [C(CZ_p_a_MW, alpha), C(CZ_q_a_MW, alpha), C(CZ_r_a_MW, alpha)]])
     CF_pqr = np.matmul(CF_rot, pqr_norm)
 
-    # aileron contribution
-    #TODO: Verify why deltaa has no contributions
+    # aileron contribution #TODO: Verify why deltaa has no contributions
     CX_deltaa_a_MW = np.array([0, 0, 0])
     CY_deltaa_a_MW = np.array([0, 0, 0]) #TODO: This should probably not be zero
     CZ_deltaa_a_MW = np.array([0, 0, 0])
-    # CF_da = np.array([[C(CX_deltaa_a_MW, alpha), C(CY_deltaa_a_MW, alpha), C(CZ_deltaa_a_MW, alpha)]]).T
     CF_da = np.array([C(CX_deltaa_a_MW, alpha), C(CY_deltaa_a_MW, alpha), C(CZ_deltaa_a_MW, alpha)])
     CF_deltaa = CF_da*deltaa
 
@@ -272,7 +260,6 @@ def compute_aero_force_coefs(b, c, alpha, beta, omega, Va, delta):
     CX_deltae_a_MW = stab_derivs['CX']['deltae']
     CY_deltae_a_MW = stab_derivs['CY']['deltae'] #TODO: This should maybe be np.array([0, 0, 0])
     CZ_deltae_a_MW = stab_derivs['CZ']['deltae']
-    # CF_de = np.array([[C(CX_deltae_a_MW, alpha), C(CY_deltae_a_MW, alpha), C(CZ_deltae_a_MW, alpha)]]).T
     CF_de = np.array([C(CX_deltae_a_MW, alpha), C(CY_deltae_a_MW, alpha), C(CZ_deltae_a_MW, alpha)])
     CF_deltae = CF_de*deltae
 
@@ -280,7 +267,6 @@ def compute_aero_force_coefs(b, c, alpha, beta, omega, Va, delta):
     CX_deltar_a_MW = np.array([0, 0, 0])
     CY_deltar_a_MW = stab_derivs['CY']['deltar']
     CZ_deltar_a_MW = np.array([0, 0, 0])
-    # CF_dr = np.array([[C(CX_deltar_a_MW, alpha), C(CY_deltar_a_MW, alpha), C(CZ_deltar_a_MW, alpha)]]).T
     CF_dr = np.array([C(CX_deltar_a_MW, alpha), C(CY_deltar_a_MW, alpha), C(CZ_deltar_a_MW, alpha)])
     CF_deltar = CF_dr*deltar
 
@@ -298,7 +284,6 @@ def compute_aero_moment_coefs(b, c, alpha, beta, omega, Va, delta):
     Inputs: Aerodynamic quantities b, c, alpha, beta, p, q, r, Va, deltaa, deltae, deltar
     Outputs: Aerodynamic force coefficient
     '''
-    #TODO: Is it necessary to have the coefficients as (3,1) arrays and matrices instead of (1,3) arrays ?
 
     # angular velocities
     p = omega[0]
@@ -317,14 +302,12 @@ def compute_aero_moment_coefs(b, c, alpha, beta, omega, Va, delta):
     Cl_0_a_MW = np.array([0, 0, 0])
     Cm_0_a_MW = np.concatenate((stab_derivs['Cm']['0'], stab_derivs['Cm']['alpha']))
     Cn_0_a_MW = np.array([0, 0, 0])
-
     CM_0 = np.array([C(Cl_0_a_MW, alpha), C(Cm_0_a_MW, alpha), C(Cn_0_a_MW, alpha)])
 
     # beta contribution
     Cl_B_a_MW = stab_derivs['Cl']['beta']
     Cm_B_a_MW = np.array([0, 0, 0])
     Cn_B_a_MW = stab_derivs['Cn']['beta']
-
     CM_B = np.array([C(Cl_B_a_MW, alpha), C(Cm_B_a_MW, alpha), C(Cn_B_a_MW, alpha)])
     CM_beta = CM_B*beta
 
@@ -343,8 +326,7 @@ def compute_aero_moment_coefs(b, c, alpha, beta, omega, Va, delta):
     Cm_r_a_MW = np.array([0, 0, 0])
     Cn_r_a_MW = stab_derivs['Cn']['r']
 
-    # Contribution of angular rates p, q, r #TODO: better name ?
-
+    # Contribution of angular rates p, q, r
     pqr_norm = np.array([b * p / (2 * Va), c * q / (2 * Va), b * r / (2 * Va)])
     CM_rot = np.array([[C(Cl_p_a_MW, alpha), C(Cl_q_a_MW, alpha), C(Cl_r_a_MW, alpha)],
                        [C(Cm_p_a_MW, alpha), C(Cm_q_a_MW, alpha), C(Cm_r_a_MW, alpha)],
@@ -419,7 +401,7 @@ def compute_apparent_speed(q, dq, wind_model):
     Va = Vw - dq
     return Va, np.linalg.norm(Va)
 
-def compute_DCM(r_ii):
+def retrieve_DCM(r_ii):
     '''
     compute Direct Cosine Matrix (DCM)
     '''
@@ -434,7 +416,7 @@ def compute_DCM(r_ii):
 
 def compute_aero_angles(Va, R_rot):
     '''
-    compute angle of attack and sideslip angle
+    compute angle of attack and sideslip angle (small angle approximation tanTheta = Theta)
     '''
     alpha = np.dot(R_rot[:,2], Va)/np.dot(R_rot[:,0], Va)
     beta = np.dot(R_rot[:,1], Va)/np.dot(R_rot[:,0], Va)
@@ -443,56 +425,57 @@ def compute_aero_angles(Va, R_rot):
 # -------------------------- MegAWES aerodynamic forces and moments -------------------------- #
 def compute_aero_forces(x, geom, wind_model):
     '''
-    Compute aerodynamic forces of MegAWES aircraft
+    Compute aerodynamic forces of MegAWES aircraft:
+    In Malz2019, the aerodynamic forces are computed using the fwd-right-down body frame.
+    In awebox, the aerodynamic forces are outputed using the bwd-right-up body frame.
+    The transformation from one frame to another is a Pi-rotation about the e2 (right) axis.
     '''
 
-    # Compute Direct Cosine Matrix
-    R_rot = compute_DCM(x[6:15])
+    # Retrieve Direct Cosine Matrix of aircraft in awebox convention
+    R_rot = retrieve_DCM(x[6:15])
 
     # Compute aerodynamic quantities from states (Va, alpha, beta) and air density
     Va, Va_norm = compute_apparent_speed(x[:3], x[3:6], wind_model)
     alpha, beta = compute_aero_angles(Va, R_rot)
     rho = compute_density(x[2])
 
-    # Compute aerodynamic coefficients
+    # Compute aerodynamic coefficients and forces in Malz convention
+    coefs = compute_aero_force_coefs(geom.b, geom.c, alpha, beta, Ry(np.pi)@x[15:18], Va_norm, x[18:21])
+    F = 0.5*rho*coefs[0]*geom.S*Va_norm**2
 
-    # /!\ Malz aero model; give it in its awn convention (=! awebox)
-    R_awebox2malz = Rx(np.pi)@Rz(np.pi)
+    # Compute aerodynamic coefficients and forces in awebox convention
+    CF = np.matmul(Ry(np.pi).T, coefs[0]) # Total force
+    F = np.matmul(Ry(np.pi).T, F) # Total force
 
-    coefs = compute_aero_force_coefs(geom.b, geom.c, alpha, beta, R_awebox2malz@x[15:18], Va_norm, x[18:21])
-    CF = coefs[0] # Total force
-
-    # Compute aerodynamic forces
-    F = 0.5*rho*CF*geom.S*Va_norm**2
-
-    return R_awebox2malz.T @ F, R_awebox2malz.T @ CF, alpha, beta, Va
+    return F, CF, alpha, beta, Va
 
 # -------------------------- MegAWES aerodynamic forces and moments -------------------------- #
 def compute_aero_moments(x, geom, wind_model):
     '''
-    Compute aerodynamic forces of MegAWES aircraft
+    Compute aerodynamic moments of MegAWES aircraft
+    In Malz2019, the aerodynamic moments are computed using the fwd-right-down body frame.
+    In awebox, the aerodynamic moments are outputed using the bwd-right-up body frame.
+    The transformation from one frame to another is a Pi-rotation about the e2 (right) axis.
     '''
 
-    # Compute Direct Cosine Matrix
-    R_rot = compute_DCM(x[6:15])
+    # Retrieve Direct Cosine Matrix
+    R_rot = retrieve_DCM(x[6:15])
 
     # Compute aerodynamic quantities from states (Va, alpha, beta) and air density
     Va, Va_norm = compute_apparent_speed(x[:3], x[3:6], wind_model)
     alpha, beta = compute_aero_angles(Va, R_rot)
     rho = compute_density(x[2])
 
-    # Compute aerodynamic coefficients
-
-    # /!\ Malz aero model; give it in its awn convention (=! awebox)
-    R_awebox2malz = Rx(np.pi)@Rz(np.pi)
-
-    coefs = compute_aero_moment_coefs(geom.b, geom.c, alpha, beta, R_awebox2malz@x[15:18], Va_norm, x[18:21])
-    CM = coefs[0] # Total force
+    # Compute aerodynamic coefficients and moments in Malz convention
+    coefs = compute_aero_moment_coefs(geom.b, geom.c, alpha, beta, Ry(np.pi)@x[15:18], Va_norm, x[18:21])
     l = np.array([geom.b, geom.c, geom.b])
-    # Compute aerodynamic forces
-    M = 0.5*rho*CM*l*geom.S*Va_norm**2
+    M = 0.5*rho*coefs[0]*l*geom.S*Va_norm**2
 
-    return R_awebox2malz.T @ M, R_awebox2malz.T @ CM
+    # Compute aerodynamic coefficients and moments in awebox convention
+    CM = np.matmul(Ry(np.pi).T, coefs[0])
+    M = np.matmul(Ry(np.pi).T, M)
+
+    return M, CM
 
 # -------------------------- MegAWES aircraft instance -------------------------- #
 class Geometry:
@@ -507,7 +490,7 @@ class Geometry:
 
 class Aerodynamics:
     '''
-    Instantaneous aerodynamics of MegAWES aircraft
+    Instantaneous aerodynamics of MegAWES aircraft (expressed in awebox convention of body-frame)
     '''
     def __init__(self, x, geom, wind_model):
         F, CF, alpha, beta, Va = compute_aero_forces(x, geom, wind_model)
@@ -515,22 +498,19 @@ class Aerodynamics:
 
         self.forces = F
         self.moments = M
+        self.R = retrieve_DCM(x[6:15]).flatten()
         self.aeroCoefs = np.concatenate((CF, CM))
         self.alpha = alpha
         self.beta = beta
         self.Va = Va
 
-
 class MegAWES:
+    '''
+
+    '''
     def __init__(self, t, x, wind_model = 'uniform'):
         self.t = t
         self.x = x
         self.geom = Geometry()
         self.aero = Aerodynamics(x, self.geom, wind_model)
 
-    # # Returns wing and tail forces in
-    # return F_aero, F_wing, F_tail
-    #
-    # R2 = Rz(-beta) * Ry(alpha)  # transformation body to aerodynamic
-    #
-    # CFa_tot = R2 * CF_tot

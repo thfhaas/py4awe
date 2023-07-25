@@ -14,6 +14,7 @@ from matplotlib import pyplot as plt
 from py4awe import viz_func as viz
 from py4awe import data_func as fun
 importlib.reload(fun)
+importlib.reload(viz)
 
 # -------------------------- Initialization/User settings -------------------------- #
 '''
@@ -21,121 +22,127 @@ User settings: Specify file name
 '''
 plt.close("all")
 path = os.getcwd()
-filename = path+"/awebox/py4awe_copy/examples/megAWES_outputs_1loop.csv"
+filename = "/cfdfile2/data/fm/thomash/Tools/py4awe/examples/megAWES_outputs_1loop.csv"
 
 # -------------------------- Get AWEBOX data -------------------------- #
+'''
+Example 1: Get AWEBOX data
+'''
+
 # Retrieve data Dict from AWEBOX
 awes = fun.csv2dict(filename)
 
 # Plot 3D flight path
 viz.plot_3d(awes)
 
-# Extract time, states, and controls from Dict
-t0 = fun.dict2t(awes)
-x0 = fun.dict2x(awes)
-u0 = fun.dict2u(awes)
+# Extract reference time, states, and controls from Dict
+t_ref = fun.dict2t(awes)
+x_ref = fun.dict2x(awes)
+u_ref = fun.dict2u(awes)
 
-# -------------------------- Recompute MegAWES aerodynamics -------------------------- #
-#TODO: Fix aerodynamic model
+# -------------------------- Compute MegAWES aerodynamics at time instance -------------------------- #
+'''
+Example 2: Compute MegAWES aerodynamics at time instance
+'''
 
-# /!\ Malz model in forward, right, down body frame; Awebox model in backward, right, up body frame
-
-# Compute aerodynamic forces at random time in power cycle
+# Random time in power cycle
 from random import uniform
-idx = (np.abs(t0 - uniform(0, t0.max()))).argmin()
-MegAWES = fun.MegAWES(t0[idx], x0[idx,:], wind_model = 'log_wind')
-print(MegAWES.geom.b, MegAWES.geom.c)
-print(MegAWES.aero.aeroCoefs, MegAWES.aero.forces)
+awes = fun.csv2dict(filename)
+t_ref = fun.dict2t(awes)
+idx = (np.abs(t_ref - uniform(0, t_ref.max()))).argmin()
 
-# Compare computed and AWEBOX aerodynamics
-N = len(t0)
+# Aerodynamics at specific instance
+t = t_ref[idx]
+x = x_ref[idx,:]
+MegAWES = fun.MegAWES(t, x, wind_model = 'uniform')
+f_str = '[%s]' % ', '.join(['{:.3f}'.format(i) for i in 1e-3*MegAWES.aero.forces])
+m_str = '[%s]' % ', '.join(['{:.3f}'.format(i) for i in 1e-3*MegAWES.aero.moments])
+print('At time '+'{:.2f}'.format(t)+', the forces and moments are '+f_str+' and '+m_str)
+print('The aircraft span and AR are '+'{:.2f}'.format(MegAWES.geom.b)+' and '+'{:.2f}'.format(MegAWES.geom.AR))
+
+# -------------------------- Reconstruct AWEBOX forces and moments -------------------------- #
+'''
+Example 3: Reconstruct AWEBOX forces and moments
+'''
+
+# Retrieve size of dataset
+awes = fun.csv2dict(filename)
+t_ref, x_ref = fun.dict2x(awes, return_t=True)
+N = len(t_ref)
+
+# Initialize aerodynamic quantities
 F = np.empty((N, 3))
+F_inertial = np.empty((N, 3))
 M = np.empty((N, 3))
-alpha = np.empty((N))
-Va = np.empty((N,3))
+R_dcm = np.empty((N, 9))
 
-for k, t, x in zip(range(N), t0, x0):
+# Reconstruct aerodynamics for each time instance
+for k, t, x in zip(range(N), t_ref, x_ref):
+
+    # MegAWES instance
     MegAWES = fun.MegAWES(t, x, 'uniform')
+
+    # Forces and moments in body frame
     F[k,:] = MegAWES.aero.forces
     M[k,:] = MegAWES.aero.moments
+
+    # Forces in inertial frame
+    R_dcm[k,:] = MegAWES.aero.R
+    F_inertial[k,:] = np.matmul(np.reshape(R_dcm[k,:], (3,3), order='F').T, MegAWES.aero.forces)
+
+# Plot forces and moments (with/out AWEBOX reference, in body/inertial frame)
+fig1, ax1 = viz.plot_forces(t_ref, F)
+ax1[0].legend(['computed'], loc=1)
+#
+fig2, ax2 = viz.plot_moments(t_ref, M, awes=awes, frame='body')
+ax2[0].legend(['reference', 'computed'], loc=1)
+#
+fig3, ax3 = viz.plot_forces(t_ref, F_inertial, awes=awes, frame='earth')
+for ax in ax3:
+    lines = ax.get_lines()
+    lines[0].set_linewidth(0.5)
+    lines[-1].set_color('tab:green')
+    ax.legend(['reference', 'computed'], loc=1)
+
+# -------------------------- Compare with AWEBOX outputs -------------------------- #
+'''
+Example 4: Compare with awebox outputs
+'''
+
+# Retrieve size of dataset
+awes = fun.csv2dict(filename)
+t_ref, x_ref = fun.dict2x(awes, return_t=True)
+N = len(t_ref)
+
+# Initialize aerodynamic quantities
+alpha = np.empty((N))
+beta = np.empty((N))
+Va = np.empty((N,3))
+
+# Reconstruct aerodynamics for each time instance
+for k, t, x in zip(range(N), t_ref, x_ref):
+    MegAWES = fun.MegAWES(t, x, 'uniform')
     alpha[k] = MegAWES.aero.alpha
+    beta[k] = MegAWES.aero.beta
     Va[k,:] = MegAWES.aero.Va
 
-# Plot forces
-fig, ax =plt.subplots(figsize=(8,6), nrows=3)
-for k in range(3):
-    ax[k].plot(t0, F[:,k], label='computed')
-    ax[k].plot(awes['time'], awes['outputs_aerodynamics_f_aero_body1_'+str(k)], label='awebox')
-    ax[k].set_xlabel('time')
-    ax[k].set_ylabel('F_'+str(k))
-    ax[k].legend(loc=1)
-    ax[k].grid()
-
-# Plot moments
-fig, ax =plt.subplots(figsize=(8,6), nrows=3)
-for k in range(3):
-    ax[k].plot(t0, M[:,k], label='computed')
-    ax[k].plot(awes['time'], awes['outputs_aerodynamics_m_aero_body1_'+str(k)], label='awebox')
-    ax[k].set_xlabel('time')
-    ax[k].set_ylabel('M_'+str(k))
-    ax[k].legend(loc=1)
-    ax[k].grid()
-
 # Plot position
-pos = x0[:,:3]
-fig, ax =plt.subplots(figsize=(8,6), nrows=3)
-for k in range(3):
-    ax[k].plot(t0, pos[:,k])
-    ax[k].set_xlabel('time')
-    ax[k].set_ylabel('x_'+str(k))
-    ax[k].grid()
+pos = x_ref[:,:3]
+fig,ax = viz.plot_position(t_ref, pos, awes=awes)
 
-# Plot velocity
-vel = x0[:,3:6]
-fig, ax =plt.subplots(figsize=(8,6), nrows=3)
-for k in range(3):
-    ax[k].plot(t0, vel[:,k])
-    ax[k].set_xlabel('time')
-    ax[k].set_ylabel('xdot_'+str(k))
-    ax[k].grid()
+# Plot flight speed
+vel = x_ref[:,3:6]
+fig,ax = viz.plot_velocity(t_ref, vel, awes=awes)
 
-# Plot angular velocity
-ang_vel = x0[:,15:18]
-fig, ax =plt.subplots(figsize=(8,6), nrows=3)
-for k in range(3):
-    ax[k].plot(t0, ang_vel[:,k])
-    ax[k].set_xlabel('time')
-    ax[k].set_ylabel('omegadot_'+str(k))
-    ax[k].grid()
+# Plot flight speed
+omega = x_ref[:,15:18]
+fig,ax = viz.plot_omega(t_ref, omega, awes=awes)
 
-# Plot CS actuation
-delta = x0[:,18:21]
-fig, ax =plt.subplots(figsize=(8,6), nrows=3)
-for k in range(3):
-    ax[k].plot(t0, delta[:,k])
-    ax[k].set_xlabel('time')
-    ax[k].set_ylabel('delta_'+str(k))
-    ax[k].grid()
+# Plot actuation
+delta = x_ref[:,18:21]
+fig,ax = viz.plot_actuation(t_ref, delta, awes=awes)
 
-# Plot aoa
-fig, ax =plt.subplots(figsize=(8,6/3), nrows=1)
-
-ax.plot(t0, alpha[:], label='computed')
-ax.plot(awes['time'], awes['outputs_aerodynamics_alpha1_0'], label='awebox')
-ax.set_xlabel('time')
-ax.set_ylabel('aoa')
-ax.legend(loc=1)
-ax.grid()
-
-# Plot Va
-fig, ax =plt.subplots(figsize=(8,6), nrows=3)
-for k in range(3):
-    ax[k].plot(t0, Va[:,k], label='computed')
-    ax[k].plot(awes['time'], awes['outputs_aerodynamics_air_velocity1_'+str(k)], label='awebox')
-    ax[k].set_xlabel('time')
-    ax[k].set_ylabel('Va_'+str(k))
-    ax[k].legend(loc=1)
-    ax[k].grid()
-
-
-plt.show()
+# Plot aero quantities
+aero = np.concatenate((np.linalg.norm(Va, axis=1)[:,None], (180.0/np.pi)*alpha[:,None], (180.0/np.pi)*beta[:,None]), axis=1)
+fig,ax = viz.plot_aero_quantities(t_ref, aero, awes=awes)
+# plt.show()
