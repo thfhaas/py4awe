@@ -1,6 +1,9 @@
 '''
 File: viz_func.py
-Author: Thomas Haas (Ghent University)
+Authors: 
+    Thomas Haas (Ghent University)
+    Niels Pynaert (Ghent University)
+    Jean-Baptiste Crismer (UC Louvain)
 Date: 29/07/2022
 Description: Visualization routines for awebox
 '''
@@ -80,7 +83,7 @@ def get_continuous_cmap(hex_list, float_list=None):
 
 def create_figure():
 
-    # Create figure
+    # Create figure (scaled portrait A4)
     s = 0.9
     fw = s*8.267
     fh = s*11.692
@@ -165,6 +168,288 @@ def plot_3d(awes):
     #     ax.annotate(s='('+letter[0]+')', xy=(0.02, 0.90), xycoords='figure fraction', fontsize=fs, va='center')
 
     return fig
+
+def create_3x3_figure(format='A4'):
+
+    if format=='A4':
+
+        # Create figure (scaled landscape 16:9)
+        s = 0.8
+        fw = s*8.3
+        fh = s*11.7
+        fig = plt.figure(figsize=(fw, fh))
+
+        # Create axes
+        dw = 0.12
+        dh = 0.08
+        aw = 0.20
+        ah = 0.24
+        ax = []
+        for j in range(3):
+            for i in range(3):
+                ax.append(fig.add_axes([(i+1)*dw + i*aw, (3-j)*dh + (2-j)*ah, aw, ah]))
+
+    else:
+        raise ValueError('unsupported format: %s', format)
+
+    return fig, ax
+
+def create_3x1_figure(format='169'):
+
+    if format=='169':
+
+        # Create figure (scaled landscape 16:9)
+        s = 0.8
+        fw = s*16
+        fh = s*9
+        fig = plt.figure(figsize=(fw, fh))
+
+        # Axes dimensions
+        dw = 0.10
+        dh = 0.10
+        aw = 0.85
+        ah = .95*(1./3.)-dh
+
+        # Create axes
+        ax = []
+        for i in range(3):
+            ax.append(fig.add_axes([dw, (3-i)*dh + (2-i)*ah, aw, ah]))
+
+    else:
+        raise ValueError('unsupported format: %s', format)
+
+    return fig, ax
+
+def create_1x1_figure(format='169'):
+
+    if format=='169':
+
+        # Create figure (scaled landscape 16:9)
+        s = 0.8
+        fw = s*16
+        fh = s*9
+        fig = plt.figure(figsize=(fw, fh))
+
+        # Axes dimensions
+        dw = 0.10
+        dh = 0.10
+        aw = 0.85
+        ah = 0.85
+
+        # Create axes
+        ax = fig.add_axes([dw, dh, aw, ah])
+
+    else:
+        raise ValueError('unsupported format: %s', format)
+
+    return fig, ax
+
+# -------------------------- Reconstruct AWEBOX aerodynamics -------------------------- #
+'''
+Function for plotting:
+- Plot force components in body-fixed (default) or inertial frame
+- Plot moment components in body-fixed (default) or inertial frame
+'''
+
+def plot_position(t, pos, awes=None):
+
+    # Create figure
+    fig, ax = create_3x1_figure()
+
+    # Plot AWEBOX reference
+    if awes:
+        var_key = 'x_q10_'
+        Tp = max(awes['time'])
+        N = ceil(t.max()/Tp)
+        t_awes = np.array(awes['time'])
+        for n in range(1,N):
+            t_awes = np.concatenate((t_awes, n*Tp + np.array(awes['time'])))
+        for k in range(3):
+            ax[k].plot(t_awes, np.tile(awes[var_key + str(k)], N), 'k--')
+
+    # Add simulated/computed data
+    for k in range(3):
+        ax[k].plot(t, pos[:,k])
+
+    # Base layout
+    for k in range(3):
+        ax[k].set_xlabel('time')
+        ax[k].set_ylabel('x_'+str(k))
+        ax[k].grid()
+
+    return fig, ax
+
+def plot_velocity(t, vel, awes=None):
+
+    # Create figure
+    fig, ax = create_3x1_figure()
+
+    # Plot AWEBOX reference
+    if awes:
+        var_key = 'x_dq10_'
+        Tp = max(awes['time'])
+        N = ceil(t.max()/Tp)
+        t_awes = np.array(awes['time'])
+        for n in range(1,N):
+            t_awes = np.concatenate((t_awes, n*Tp + np.array(awes['time'])))
+        for k in range(3):
+            ax[k].plot(t_awes, np.tile(awes[var_key + str(k)], N), 'k--')
+
+    # Add simulated/computed data
+    for k in range(3):
+        ax[k].plot(t, vel[:,k])
+
+    # Base layout
+    for k in range(3):
+        ax[k].set_xlabel('time')
+        ax[k].set_ylabel('v_'+str(k))
+        ax[k].grid()
+
+    return fig, ax
+
+def plot_omega(t, omega, awes=None):
+
+    # Create figure
+    fig, ax = create_3x1_figure()
+
+    # Plot AWEBOX reference
+    if awes:
+        var_key = 'x_omega10_'
+        Tp = max(awes['time'])
+        N = ceil(t.max()/Tp)
+        t_awes = np.array(awes['time'])
+        for n in range(1,N):
+            t_awes = np.concatenate((t_awes, n*Tp + np.array(awes['time'])))
+        for k in range(3):
+            ax[k].plot(t_awes, np.tile(awes[var_key + str(k)], N), 'k--')
+
+    # Add simulated/computed data
+    for k in range(3):
+        ax[k].plot(t, omega[:,k])
+
+    # Base layout
+    for k in range(3):
+        ax[k].set_xlabel('time')
+        ax[k].set_ylabel('omega_'+str(k))
+        ax[k].grid()
+
+    return fig, ax
+
+def plot_actuation(t, delta, awes=None):
+
+    # Create figure
+    fig, ax = create_3x1_figure()
+
+    # Plot AWEBOX reference
+    if awes:
+        var_key = 'x_delta10_'
+        Tp = max(awes['time'])
+        N = ceil(t.max()/Tp)
+        t_awes = np.array(awes['time'])
+        for n in range(1,N):
+            t_awes = np.concatenate((t_awes, n*Tp + np.array(awes['time'])))
+        for k in range(3):
+            ax[k].plot(t_awes, np.tile(awes[var_key + str(k)], N), 'k--')
+
+    # Add simulated/computed data
+    for k in range(3):
+        ax[k].plot(t, delta[:,k])
+
+    # Base layout
+    for k in range(3):
+        ax[k].set_xlabel('time')
+        ax[k].set_ylabel('delta_'+str(k))
+        ax[k].grid()
+
+    return fig, ax
+
+def plot_aero_quantities(t, aero, awes=None):
+
+    # Create figure
+    fig, ax = create_3x1_figure()
+
+    # Plot AWEBOX reference
+    if awes:
+        Tp = max(awes['time'])
+        N = ceil(t.max()/Tp)
+        t_awes = np.array(awes['time'])
+        for n in range(1,N):
+            t_awes = np.concatenate((t_awes, n*Tp + np.array(awes['time'])))
+        ax[0].plot(t_awes, np.tile(awes['outputs_aerodynamics_airspeed1_0'], N), 'k--')
+        ax[1].plot(t_awes, np.tile(awes['outputs_aerodynamics_alpha_deg1_0'], N), 'k--')
+        ax[2].plot(t_awes, np.tile(awes['outputs_aerodynamics_beta_deg1_0'], N), 'k--')
+
+    # Add simulated/computed data
+    for k in range(3):
+        ax[k].plot(t, aero[:,k])
+
+    # Base layout
+    ax[0].set_ylabel('va')
+    ax[1].set_ylabel('alpha')
+    ax[2].set_ylabel('beta')
+    for k in range(3):
+        ax[k].set_xlabel('time')
+        ax[k].grid()
+
+    return fig, ax
+
+def plot_forces(t, F, awes=None, frame='body'):
+
+    # Create figure
+    fig, ax = create_3x1_figure()
+
+    # Plot AWEBOX reference
+    if awes:
+        var_key = 'outputs_aerodynamics_f_aero_'+frame+'1_'
+        Tp = max(awes['time'])
+        N = ceil(t.max()/Tp)
+        t_awes = np.array(awes['time'])
+        for n in range(1,N):
+            t_awes = np.concatenate((t_awes, n*Tp + np.array(awes['time'])))
+        for k in range(3):
+            ax[k].plot(t_awes, np.tile(awes[var_key + str(k)], N), 'k--')
+
+    # Add simulated/computed data
+    for k in range(3):
+        ax[k].plot(t, F[:,k])
+
+    # Base layout
+    for k in range(3):
+        ax[k].set_xlabel('time')
+        ax[k].set_ylabel('F_'+str(k))
+        ax[k].grid()
+
+    return fig, ax
+
+def plot_moments(t, M, awes=None, frame='body'):
+
+    # Create figure
+    fig, ax = create_3x1_figure()
+
+    # Plot AWEBOX reference
+    if awes:
+        var_key = 'outputs_aerodynamics_m_aero_'+frame+'1_'
+        Tp = max(awes['time'])
+        N = ceil(t.max()/Tp)
+        t_awes = np.array(awes['time'])
+        for n in range(1,N):
+            t_awes = np.concatenate((t_awes, n*Tp + np.array(awes['time'])))
+        for k in range(3):
+            ax[k].plot(t_awes, np.tile(awes[var_key + str(k)], N), 'k--')
+
+    # Add simulated/computed data
+    for k in range(3):
+        ax[k].plot(t, M[:,k])
+
+    # Base layout
+    for k in range(3):
+        ax[k].set_xlabel('time')
+        ax[k].set_ylabel('M_'+str(k))
+        ax[k].grid()
+
+    return fig, ax
+
+# TODO -------------------------- Update functions -------------------------- #
 
 def plot_motion(awes):
 
