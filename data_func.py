@@ -443,6 +443,8 @@ def compute_aero_forces(x, geom, wind_model):
     Compute aerodynamic forces of MegAWES aircraft
     '''
 
+    # /!\ Malz aero model; give it in its own convention (=! awebox)
+    R_awebox2malz = Ry(np.pi)
     # Compute Direct Cosine Matrix
     R_rot = compute_DCM(x[9:18])
 
@@ -452,6 +454,7 @@ def compute_aero_forces(x, geom, wind_model):
     rho = compute_density(x[2])
 
     # Compute aerodynamic coefficients
+    alpha, beta = compute_aero_angles(R_awebox2malz @ Va, R_awebox2malz @ R_rot @ R_awebox2malz.T) # Malz iner 2 Malz body = Malz 2 awebow + awebox inert 2 awebox body + awebox 2 Malz
 
     # /!\ Malz aero model; give it in its awn convention (=! awebox)
     R_awebox2malz = Rx(np.pi)@Rz(np.pi)
@@ -470,12 +473,15 @@ def compute_aero_moments(x, geom, wind_model):
     Compute aerodynamic forces of MegAWES aircraft
     '''
 
+    # /!\ Malz aero model; give it in its awn convention (=! awebox)
+    R_awebox2malz = Ry(np.pi)
     # Compute Direct Cosine Matrix
     R_rot = compute_DCM(x[9:18])
 
     # Compute aerodynamic quantities from states (Va, alpha, beta) and air density
     Va, Va_norm = compute_apparent_speed(x[:3], x[3:6], wind_model)
     alpha, beta = compute_aero_angles(Va, R_rot)
+    alpha, beta = compute_aero_angles(R_awebox2malz @ Va, R_awebox2malz @ R_rot @ R_awebox2malz.T) # Malz iner 2 Malz body = Malz 2 awebow + awebox inert 2 awebox body + awebox 2 Malz
     rho = compute_density(x[2])
 
     # Compute aerodynamic coefficients

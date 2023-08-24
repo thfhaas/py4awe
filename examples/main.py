@@ -49,6 +49,7 @@ N = len(t0)
 F = np.empty((N, 3))
 M = np.empty((N, 3))
 alpha = np.empty((N))
+beta = np.empty((N))
 Va = np.empty((N,3))
 
 for k, t, x in zip(range(N), t0, x0):
@@ -56,6 +57,7 @@ for k, t, x in zip(range(N), t0, x0):
     F[k,:] = MegAWES.aero.forces
     M[k,:] = MegAWES.aero.moments
     alpha[k] = MegAWES.aero.alpha
+    beta[k] = MegAWES.aero.beta
     Va[k,:] = MegAWES.aero.Va
 
 # Plot forces
