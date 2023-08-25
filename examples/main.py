@@ -24,8 +24,7 @@ User settings: Specify file name
 '''
 plt.close("all")
 path = os.getcwd()
-filename = "/Users/jcrismer/Documents/python/awebox/awebox/py4awe/examples/megAWES_outputs_1loop.csv"
-filename = "/Users/jcrismer/Documents/python/awebox/megAWES_outputs_RENAME.csv"
+filename = "/cfdfile2/data/fm/thomash/Tools/py4awe/examples/megAWES_outputs_1loop.csv"
 
 # -------------------------- Get AWEBOX data -------------------------- #
 '''
@@ -77,9 +76,6 @@ N = len(t_ref)
 F = np.empty((N, 3))
 F_inertial = np.empty((N, 3))
 M = np.empty((N, 3))
-alpha = np.empty((N))
-beta = np.empty((N))
-Va = np.empty((N,3))
 R_dcm = np.empty((N, 9))
 
 # Reconstruct aerodynamics for each time instance
