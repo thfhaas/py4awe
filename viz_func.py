@@ -127,7 +127,7 @@ def plot_3d(awes):
 
     fig = plt.figure(figsize=(6.0, 6.0))
     ax = fig.add_subplot(1, 1, 1, projection='3d')
-    fig.subplots_adjust(bottom=0.05, top=0.95, left=0.05, right=0.9)
+    # fig.subplots_adjust(bottom=0.05, top=0.95, left=0.05, right=0.9)
 
     # Plot tether
     N = 20
@@ -189,6 +189,23 @@ def create_3x3_figure(format='A4'):
             for i in range(3):
                 ax.append(fig.add_axes([(i+1)*dw + i*aw, (3-j)*dh + (2-j)*ah, aw, ah]))
 
+    elif format=='169':
+
+        # Create figure (scaled landscape 16:9)
+        s = 0.8
+        fw = s*16
+        fh = s*9
+        fig = plt.figure(figsize=(fw, fh))
+
+        # Create axes
+        dw = 0.08
+        dh = 0.08
+        aw = 0.24
+        ah = 0.24
+        ax = []
+        for j in range(3):
+            for i in range(3):
+                ax.append(fig.add_axes([(i+1)*dw + i*aw, (3-j)*dh + (2-j)*ah, aw, ah]))
     else:
         raise ValueError('unsupported format: %s', format)
 
@@ -377,7 +394,7 @@ def plot_aero_quantities(t, aero, awes=None):
             t_awes = np.concatenate((t_awes, n*Tp + np.array(awes['time'])))
         ax[0].plot(t_awes, np.tile(awes['outputs_aerodynamics_airspeed1_0'], N), 'k--')
         ax[1].plot(t_awes, np.tile(awes['outputs_aerodynamics_alpha_deg1_0'], N), 'k--')
-        ax[2].plot(t_awes, np.tile(awes['outputs_aerodynamics_beta_deg1_0'], N), 'k--')
+        ax[2].plot(t_awes, (-1)*np.tile(awes['outputs_aerodynamics_beta_deg1_0'], N), 'k--') # incorrect beta output in AWEbox
 
     # Add simulated/computed data
     for k in range(3):

@@ -13,6 +13,7 @@ import csv
 import math as m
 import numpy as np
 from scipy.spatial.transform import Rotation as R
+import sys
 
 # -------------------------- AWEBOX import -------------------------- #
 def csv2dict(fname):
@@ -88,7 +89,7 @@ def dict2u(data, return_t=False, print_keys=False):
     '''
     # List of controls (dict keys)
     raw_keys_states = [idx for idx in list(data.keys()) if idx.lower().startswith('u')]
-    keys_controls = ['u_ddl_t_0', 'u_ddelta10_0', 'u_ddelta10_1', 'u_ddelta10_2']
+    keys_controls = ['u_ddelta10_0', 'u_ddelta10_1', 'u_ddelta10_2', 'u_ddl_t_0']
     if print_keys:
         for key in keys_controls:
             print(key)
@@ -184,7 +185,7 @@ def get_aero_stab_derivs(model='AVL'):
 
     return stab_derivs
 
-# -------------------------- MegAWES aerodynamic model -------------------------- #
+# -------------------------- MegAWES aerodynamic coefficients -------------------------- #
 def C(C_a,alpha):
     '''
     Evaluate aerodynamic coefficient
@@ -414,70 +415,19 @@ def retrieve_DCM(r_ii):
         R_rot = np.reshape(r_ii, (3, 3), order='F')
     return R_rot
 
-def compute_aero_angles(Va, R_rot):
+def compute_aero_angles(Va, frame):
     '''
     compute angle of attack and sideslip angle (small angle approximation tanTheta = Theta)
+    Take Va in Malz's frame (fun input is in inertial frame)
     '''
-    alpha = np.dot(R_rot[:,2], Va)/np.dot(R_rot[:,0], Va)
-    beta = np.dot(R_rot[:,1], Va)/np.dot(R_rot[:,0], Va)
+    if frame=="aero":
+        alpha = Va[2]/Va[0]
+        beta = Va[1]/Va[0]
+    else:
+        sys.exit("Va needs to be given in the 'aero' frame. Exit.")
     return alpha, beta
 
-# -------------------------- MegAWES aerodynamic forces and moments -------------------------- #
-def compute_aero_forces(x, geom, wind_model):
-    '''
-    Compute aerodynamic forces of MegAWES aircraft:
-    In Malz2019, the aerodynamic forces are computed using the fwd-right-down body frame.
-    In awebox, the aerodynamic forces are outputed using the bwd-right-up body frame.
-    The transformation from one frame to another is a Pi-rotation about the e2 (right) axis.
-    '''
-
-    # Retrieve Direct Cosine Matrix of aircraft in awebox convention
-    R_rot = retrieve_DCM(x[6:15])
-
-    # Compute aerodynamic quantities from states (Va, alpha, beta) and air density
-    Va, Va_norm = compute_apparent_speed(x[:3], x[3:6], wind_model)
-    alpha, beta = compute_aero_angles(Va, R_rot)
-    rho = compute_density(x[2])
-
-    # Compute aerodynamic coefficients and forces in Malz convention
-    coefs = compute_aero_force_coefs(geom.b, geom.c, alpha, beta, Ry(np.pi)@x[15:18], Va_norm, x[18:21])
-    F = 0.5*rho*coefs[0]*geom.S*Va_norm**2
-
-    # Compute aerodynamic coefficients and forces in awebox convention
-    CF = np.matmul(Ry(np.pi).T, coefs[0]) # Total force
-    F = np.matmul(Ry(np.pi).T, F) # Total force
-
-    return F, CF, alpha, beta, Va
-
-# -------------------------- MegAWES aerodynamic forces and moments -------------------------- #
-def compute_aero_moments(x, geom, wind_model):
-    '''
-    Compute aerodynamic moments of MegAWES aircraft
-    In Malz2019, the aerodynamic moments are computed using the fwd-right-down body frame.
-    In awebox, the aerodynamic moments are outputed using the bwd-right-up body frame.
-    The transformation from one frame to another is a Pi-rotation about the e2 (right) axis.
-    '''
-
-    # Retrieve Direct Cosine Matrix
-    R_rot = retrieve_DCM(x[6:15])
-
-    # Compute aerodynamic quantities from states (Va, alpha, beta) and air density
-    Va, Va_norm = compute_apparent_speed(x[:3], x[3:6], wind_model)
-    alpha, beta = compute_aero_angles(Va, R_rot)
-    rho = compute_density(x[2])
-
-    # Compute aerodynamic coefficients and moments in Malz convention
-    coefs = compute_aero_moment_coefs(geom.b, geom.c, alpha, beta, Ry(np.pi)@x[15:18], Va_norm, x[18:21])
-    l = np.array([geom.b, geom.c, geom.b])
-    M = 0.5*rho*coefs[0]*l*geom.S*Va_norm**2
-
-    # Compute aerodynamic coefficients and moments in awebox convention
-    CM = np.matmul(Ry(np.pi).T, coefs[0])
-    M = np.matmul(Ry(np.pi).T, M)
-
-    return M, CM
-
-# -------------------------- MegAWES aircraft instance -------------------------- #
+# -------------------------- MegAWES aircraft dimensions -------------------------- #
 class Geometry:
     '''
     Geometry of MegAWES aircraft: span, aspect ratio, surface area and equivalent chord length
@@ -488,22 +438,62 @@ class Geometry:
         self.S = S
         self.c = self.S/self.b
 
+# -------------------------- MegAWES aircraft aerodynamics -------------------------- #
 class Aerodynamics:
     '''
     Instantaneous aerodynamics of MegAWES aircraft (expressed in awebox convention of body-frame)
     '''
-    def __init__(self, x, geom, wind_model):
-        F, CF, alpha, beta, Va = compute_aero_forces(x, geom, wind_model)
-        M, CM = compute_aero_moments(x, geom, wind_model)
+    def __init__(self, x, geom, wind_model="uniform"):
 
-        self.forces = F
-        self.moments = M
-        self.R = retrieve_DCM(x[6:15]).flatten()
-        self.aeroCoefs = np.concatenate((CF, CM))
+        # ---------- Compute DCMs ---------- #
+
+        # Retrieve DCM of body-fixed axis system ("body")  in AWEbox convention (backward-right-up)
+        R_body = retrieve_DCM(x[6:15])
+        self.R_body = R_body
+
+        # Retrieve DCM of aerodynamics axis system ("aero") in Malz's convention (forward-right-down)
+        R_aero = np.matmul(R_body, Ry(np.pi))
+        self.R_aero = R_aero
+
+        # ---------- Compute apparent wind speed ---------- #
+        Va_earth, Va_norm = compute_apparent_speed(x[:3], x[3:6], wind_model=wind_model)
+        Va_aero = np.matmul(R_aero.T, Va_earth)
+        self.Va = Va_aero
+
+        # ---------- Compute aerodynamic angles in the "aero" frame ---------- #
+        alpha, beta = compute_aero_angles(Va_aero, frame="aero")
         self.alpha = alpha
         self.beta = beta
-        self.Va = Va
 
+        # ---------- Compute air density ---------- #
+        rho = compute_density(x[2])
+        self.rho = rho
+
+        # ---------- Compute forces and moments coefficients in the "aero" frame ---------- #
+        omega_aero = np.matmul(Ry(np.pi), x[15:18])
+        delta = x[18:21] # Ready to use in "aero" frame
+        CF = compute_aero_force_coefs(geom.b, geom.c, alpha, beta, omega_aero, Va_norm, delta)
+        CM = compute_aero_moment_coefs(geom.b, geom.c, alpha, beta, omega_aero, Va_norm, delta)
+        self.CF = CF
+        self.CM = CM
+
+        # ---------- Compute forces and moments in the "aero" frame ---------- #
+        F_aero = 0.5 * rho * geom.S * CF[0] * Va_norm ** 2
+        M_aero = 0.5 * rho * geom.S * (CM[0] * [geom.b, geom.c, geom.b]) * Va_norm ** 2          # F, CF, alpha, beta, Va = compute_aero_forces(x, geom, wind_model)
+
+        # ---------- Compute forces and moments to "earth" frame ---------- #
+        F_earth = np.matmul(R_aero, F_aero)
+        M_earth = np.matmul(R_aero, M_aero)
+
+        # ---------- Compute forces and moments to "body" frame ---------- #
+        F_body  = np.matmul(R_body.T, F_earth)
+        M_body  = np.matmul(R_body.T, M_earth)
+
+        # ---------- Output forces and moments ---------- #
+        self.F = {"aero":F_aero, "earth":F_earth, "body":F_body}
+        self.M = {"aero":M_aero, "earth":M_earth, "body":M_body}
+
+# -------------------------- MegAWES aircraft instance -------------------------- #
 class MegAWES:
     '''
 
@@ -513,4 +503,3 @@ class MegAWES:
         self.x = x
         self.geom = Geometry()
         self.aero = Aerodynamics(x, self.geom, wind_model)
-
