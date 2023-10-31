@@ -37,9 +37,9 @@ User settings: Specify file name
 '''
 plt.close("all")
 path = os.getcwd()
-filename1 = "/cfdfile2/data/fm/thomash/Tools/awebox/experimental/megawes_uniform_1loop_results_old_beta.csv"
-filename2 = "/cfdfile2/data/fm/thomash/Tools/awebox/experimental/megawes_uniform_1loop_results_new_beta.csv"
-output_folder = "/cfdfile2/data/fm/thomash/Devs/PycharmProjects/awebox/check_side_slip_angle/"
+filename1 = "./megawes_uniform_1loop_results_old_beta.csv"
+filename2 = "./megawes_uniform_1loop_results_new_beta.csv"
+output_folder = "./examples/" 
 
 # -------------------------- Get AWEBOX data -------------------------- #
 '''

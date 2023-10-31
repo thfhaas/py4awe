@@ -22,7 +22,7 @@ User settings: Specify file name
 '''
 plt.close("all")
 path = os.getcwd()
-filename = "/cfdfile2/data/fm/thomash/Tools/py4awe/examples/megawes_uniform_1loop_results.csv"
+filename = "./megawes_uniform_1loop_results.csv"
 
 # -------------------------- Get AWEbox data -------------------------- #
 '''
